@@ -33,7 +33,7 @@ setup(
     author="Caden Shmookler",
     author_email="cshmookler@gmail.com",
     description="A compromise between error codes and exceptions.",
-    packages=["src.result"],
+    packages=["result"],
     classifiers=[  # The full list of classifiers is at https://pypi.org/classifiers/
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
