@@ -36,15 +36,19 @@ class Error:
     This type is used to distinguish between errors and result values.
     """
 
-    def __init__(self, error: str) -> None:
-        self._error: str = error
+    def __init__(self, annotation: str) -> None:
+        self._error: str = annotation
+        self._trace(inspect.currentframe(), annotation)
 
-    def trace(self, annotation: None | str = None) -> None:
-        this_frame: None | inspect.FrameType = inspect.currentframe()
-        if this_frame is None:
+    def _trace(
+        self,
+        current_frame: inspect.types.FrameType | None,
+        annotation: str | None = None,
+    ) -> None:
+        if current_frame is None:
             raise TraceError("Failed to retrieve the current frame.")
 
-        prev_frame: None | inspect.FrameType = this_frame.f_back
+        prev_frame: None | inspect.types.FrameType = current_frame.f_back
         if prev_frame is None:
             raise TraceError("Failed to retrieve the previous frame.")
 
@@ -57,8 +61,27 @@ class Error:
         if annotation is not None:
             self._error += f" -> {annotation}"
 
+    def trace(self, annotation: str | None = None) -> None:
+        """Adds a trace to this error with an optional annotation.
+
+        Args:
+            annotation (str): Add a message annotating this trace.
+                       (None): Do not add a message to this trace.
+        """
+
+        self._trace(inspect.currentframe(), annotation)
+
     def __str__(self) -> str:
         return self._error
+
+
+class BadOptionalAccess(Exception):
+    """Raised when attempting to access a value from an Optional instance that
+    does not contain a value or an error from an Optional instance that does
+    not contain an error.
+    """
+
+    pass
 
 
 class Result:
@@ -68,13 +91,13 @@ class Result:
         self._error: None | Error = error
 
     @classmethod
-    def value(cls):
+    def success(cls, error: str):
         """Returns a Result instance indicating success."""
 
         return cls(None)
 
     @classmethod
-    def error(cls, error: str):
+    def failure(cls, error: str):
         """Returns a Result instance indicating failure."""
 
         return cls(Error(error))
@@ -85,26 +108,32 @@ class Result:
 
         return not isinstance(self._error, Error)
 
-    def success(self) -> bool:
+    def get_success(self) -> bool:
         """Returns True if this Result instance indicates success and False if
         this result indicates failure."""
 
         return not isinstance(self._error, Error)
 
-    def failure(self) -> bool:
+    def get_failure(self) -> bool:
         """Returns True if this Result instance indicates failure and False if
         this result indicates success."""
 
         return isinstance(self._error, Error)
 
+    def trace(self, annotation: str | None = None) -> None:
+        """Adds a trace to this error with an optional annotation.
 
-class BadOptionalAccess(Exception):
-    """Raised when attempting to access a value from an Optional instance that
-    does not contain a value or an error from an Optional instance that does
-    not contain an error.
-    """
+        Args:
+            annotation (str): Add a message annotating this trace.
+                       (None): Do not add a message to this trace.
+        """
 
-    pass
+        if self._error is None:
+            raise BadOptionalAccess(
+                "Failed to add a trace to a Result instance without an Error instance."
+            )
+
+        self._error._trace(inspect.currentframe(), annotation)
 
 
 T = TypeVar("T")
@@ -185,3 +214,18 @@ class Optional(Generic[T]):
                 + str(self._result)
             )
         return self._result
+
+    def trace(self, annotation: str | None = None) -> None:
+        """Adds a trace to this error with an optional annotation.
+
+        Args:
+            annotation (str): Add a message annotating this trace.
+                       (None): Do not add a message to this trace.
+        """
+
+        if not isinstance(self._result, Error):
+            raise BadOptionalAccess(
+                "Failed to add a trace to a Result instance without an Error instance."
+            )
+
+        self._result._trace(inspect.currentframe(), annotation)
