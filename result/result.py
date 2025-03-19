@@ -40,6 +40,9 @@ class Error:
         self._error: str = annotation
         self._trace(inspect.currentframe(), annotation)
 
+    def __str__(self) -> str:
+        return self._error
+
     def _trace(
         self,
         current_frame: inspect.types.FrameType | None,
@@ -71,9 +74,6 @@ class Error:
 
         self._trace(inspect.currentframe(), annotation)
 
-    def __str__(self) -> str:
-        return self._error
-
 
 class BadOptionalAccess(Exception):
     """Raised when attempting to access a value from an Optional instance that
@@ -91,7 +91,7 @@ class Result:
         self._error: None | Error = error
 
     @classmethod
-    def success(cls, error: str):
+    def success(cls):
         """Returns a Result instance indicating success."""
 
         return cls(None)
@@ -102,23 +102,53 @@ class Result:
 
         return cls(Error(error))
 
+    def __str__(self) -> str:
+        """Returns a string representation of the Error or None stored within this Result instance."""
+
+        return str(self.get())
+
     def __bool__(self) -> bool:
         """Returns True if this Result instance indicates success and False if
         this result indicates failure."""
 
         return not isinstance(self._error, Error)
 
-    def get_success(self) -> bool:
+    def has_success(self) -> bool:
         """Returns True if this Result instance indicates success and False if
         this result indicates failure."""
 
         return not isinstance(self._error, Error)
 
-    def get_failure(self) -> bool:
+    def has_failure(self) -> bool:
         """Returns True if this Result instance indicates failure and False if
         this result indicates success."""
 
         return isinstance(self._error, Error)
+
+    def get(self) -> Error | None:
+        """Returns the value or error stored within this Result instance.
+
+        Returns:
+            Error: If this Result instance indicates failure.
+            None: If this Result instance indicates success.
+        """
+
+        return self._error
+
+    def get_error(self) -> Error:
+        """Returns the error stored within this Result instance.
+
+        Raises:
+            BadOptionalAccess: If this Result instance does not contain an
+                error.
+        """
+
+        if not isinstance(self._error, Error):
+            raise BadOptionalAccess(
+                "This Result instance does not contain an error.  Error: "
+                + str(self._error)
+            )
+        return self._error
 
     def trace(self, annotation: str | None = None) -> None:
         """Adds a trace to this error with an optional annotation.
@@ -157,6 +187,9 @@ class Optional(Generic[T]):
 
         return cls(Error(error))
 
+    def __str__(self) -> str:
+        return str(self.get())
+
     def __bool__(self) -> bool:
         """Returns True if this Optional instance contains a value and False if
         this instance contains an error."""
@@ -176,7 +209,7 @@ class Optional(Generic[T]):
         return isinstance(self._result, Error)
 
     def get(self) -> T | Error:
-        """Returns the value of error stored within this Optional instance.
+        """Returns the value or error stored within this Optional instance.
 
         Returns:
             T: If this Optional instance contains a value.
@@ -195,7 +228,7 @@ class Optional(Generic[T]):
 
         if isinstance(self._result, Error):
             raise BadOptionalAccess(
-                "This optional object does not contain a value.  Error: "
+                "This Optional instance does not contain a value.  Error: "
                 + str(self._result)
             )
         return self._result
@@ -210,7 +243,7 @@ class Optional(Generic[T]):
 
         if not isinstance(self._result, Error):
             raise BadOptionalAccess(
-                "This optional object does not contain an error.  Value: "
+                "This Optional instance does not contain an error.  Value: "
                 + str(self._result)
             )
         return self._result
