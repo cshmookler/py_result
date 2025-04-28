@@ -15,7 +15,7 @@ Typical usage of Optional:
     def read_file(path: str) -> Optional[str]:
         try:
             with open(path, 'rb') as file:
-                return Result.ok(file.read().decode())
+                return Optional.value(file.read().decode())
         except OSError as exception:
             return Optional.error("Failed to read file: " + exception.strerror)
 """
@@ -37,7 +37,7 @@ class Error:
     """
 
     def __init__(self, annotation: str) -> None:
-        self._error: str = annotation
+        self._error: str = ""
         self._trace(inspect.currentframe(), annotation)
 
     def __str__(self) -> str:
