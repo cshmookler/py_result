@@ -64,7 +64,7 @@ class Error:
         if annotation is not None:
             self._error += f" -> {annotation}"
 
-    def trace(self, annotation: str | None = None) -> None:
+    def trace(self, annotation: str | None = None):
         """Adds a trace to this error with an optional annotation.
 
         Args:
@@ -74,12 +74,20 @@ class Error:
 
         self._trace(inspect.currentframe(), annotation)
 
+        return self
+
 
 class BadOptionalAccess(Exception):
     """Raised when attempting to access a value from an Optional instance that
     does not contain a value or an error from an Optional instance that does
     not contain an error.
     """
+
+    pass
+
+
+class BadErrorConstruction(Exception):
+    """Raised when attempting to construct an error from incompatible types."""
 
     pass
 
@@ -97,10 +105,31 @@ class Result:
         return cls(None)
 
     @classmethod
-    def failure(cls, error: str):
-        """Returns a Result instance indicating failure."""
+    def failure(cls, error):
+        """Returns a Result instance indicating failure.
 
-        return cls(Error(error))
+        Args:
+            annotation (str): Add a message annotating this failure.
+                       (Error): Use the message from an Error to annotate this failure.
+                       (Result): Use the message from a Result to annotate this failure.
+                       (Optional): Use the message from an Optional to annotate this failure.
+        """
+
+        if type(error) is str:
+            return cls(Error(error))
+
+        if type(error) is Error:
+            return cls(error)
+
+        if type(error) is Result:
+            return cls(error.get_error())
+
+        if type(error) is Optional:
+            return cls(error.get_error())
+
+        raise BadErrorConstruction(
+            f"Invalid type to construct an error from: {type(error)}"
+        )
 
     def __str__(self) -> str:
         """Returns a string representation of the Error or None stored within this Result instance."""
@@ -111,19 +140,19 @@ class Result:
         """Returns True if this Result instance indicates success and False if
         this result indicates failure."""
 
-        return not isinstance(self._error, Error)
+        return type(self._error) is not Error
 
     def has_success(self) -> bool:
         """Returns True if this Result instance indicates success and False if
         this result indicates failure."""
 
-        return not isinstance(self._error, Error)
+        return type(self._error) is not Error
 
     def has_failure(self) -> bool:
         """Returns True if this Result instance indicates failure and False if
         this result indicates success."""
 
-        return isinstance(self._error, Error)
+        return type(self._error) is Error
 
     def get(self) -> Error | None:
         """Returns the value or error stored within this Result instance.
@@ -143,14 +172,14 @@ class Result:
                 error.
         """
 
-        if not isinstance(self._error, Error):
+        if type(self._error) is not Error:
             raise BadOptionalAccess(
                 "This Result instance does not contain an error.  Error: "
                 + str(self._error)
             )
         return self._error
 
-    def trace(self, annotation: str | None = None) -> None:
+    def trace(self, annotation: str | None = None):
         """Adds a trace to this error with an optional annotation.
 
         Args:
@@ -164,6 +193,8 @@ class Result:
             )
 
         self._error._trace(inspect.currentframe(), annotation)
+
+        return self
 
 
 T = TypeVar("T")
@@ -182,10 +213,31 @@ class Optional(Generic[T]):
         return cls(value)
 
     @classmethod
-    def error(cls, error: str):
-        """Returns an Optional instance indicating failure."""
+    def error(cls, error):
+        """Returns an Optional instance indicating failure.
 
-        return cls(Error(error))
+        Args:
+            annotation (str): Add a message annotating this error.
+                       (Error): Use the message from an Error to annotate this error.
+                       (Result): Use the message from a Result to annotate this error.
+                       (Optional): Use the message from an Optional to annotate this error.
+        """
+
+        if type(error) is str:
+            return cls(Error(error))
+
+        if type(error) is Error:
+            return cls(error)
+
+        if type(error) is Result:
+            return cls(error.get_error())
+
+        if type(error) is Optional:
+            return cls(error.get_error())
+
+        raise BadErrorConstruction(
+            f"Invalid type to construct an error from: {type(error)}"
+        )
 
     def __str__(self) -> str:
         return str(self.get())
@@ -194,19 +246,19 @@ class Optional(Generic[T]):
         """Returns True if this Optional instance contains a value and False if
         this instance contains an error."""
 
-        return not isinstance(self._result, Error)
+        return type(self._result) is not Error
 
     def has_value(self) -> bool:
         """Returns True if this Optional instance contains a value and False if
         this instance contains an error."""
 
-        return not isinstance(self._result, Error)
+        return type(self._result) is not Error
 
     def has_error(self) -> bool:
         """Returns True if this Optional instance contains an error and False
         if this instance contains a value."""
 
-        return isinstance(self._result, Error)
+        return type(self._result) is Error
 
     def get(self) -> T | Error:
         """Returns the value or error stored within this Optional instance.
@@ -226,7 +278,7 @@ class Optional(Generic[T]):
                 value.
         """
 
-        if isinstance(self._result, Error):
+        if type(self._result) is Error:
             raise BadOptionalAccess(
                 "This Optional instance does not contain a value.  Error: "
                 + str(self._result)
@@ -241,14 +293,14 @@ class Optional(Generic[T]):
                 error.
         """
 
-        if not isinstance(self._result, Error):
+        if type(self._result) is not Error:
             raise BadOptionalAccess(
                 "This Optional instance does not contain an error.  Value: "
                 + str(self._result)
             )
         return self._result
 
-    def trace(self, annotation: str | None = None) -> None:
+    def trace(self, annotation: str | None = None):
         """Adds a trace to this error with an optional annotation.
 
         Args:
@@ -256,9 +308,11 @@ class Optional(Generic[T]):
                        (None): Do not add a message to this trace.
         """
 
-        if not isinstance(self._result, Error):
+        if type(self._result) is not Error:
             raise BadOptionalAccess(
                 "Failed to add a trace to a Result instance without an Error instance."
             )
 
         self._result._trace(inspect.currentframe(), annotation)
+
+        return self

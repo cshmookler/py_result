@@ -1,1 +1,8 @@
-from .result import BadOptionalAccess, Error, Optional, Result, TraceError
+from .result import (
+    BadErrorConstruction,
+    BadOptionalAccess,
+    Error,
+    Optional,
+    Result,
+    TraceError,
+)

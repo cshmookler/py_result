@@ -12,9 +12,9 @@ def setup():
     global error_msg_1, error_msg_2, error
     error_msg_1 = "this is an error message"
     error = Error(error_msg_1)
-    error.trace()
+    assert error.trace() is error
     error_msg_2 = "this is another trace annotation"
-    error.trace(error_msg_2)
+    assert error.trace(error_msg_2) is error
 
 
 def test_error_trace_str():
