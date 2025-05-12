@@ -105,7 +105,7 @@ class Result:
         return cls(None)
 
     @classmethod
-    def failure(cls, error):
+    def failure(cls, annotation):
         """Returns a Result instance indicating failure.
 
         Args:
@@ -115,20 +115,20 @@ class Result:
                        (Optional): Use the message from an Optional to annotate this failure.
         """
 
-        if type(error) is str:
-            return cls(Error(error))
+        if type(annotation) is str:
+            return cls(Error(annotation))
 
-        if type(error) is Error:
-            return cls(error)
+        if type(annotation) is Error:
+            return cls(annotation)
 
-        if type(error) is Result:
-            return cls(error.get_error())
+        if type(annotation) is Result:
+            return cls(annotation.get_error())
 
-        if type(error) is Optional:
-            return cls(error.get_error())
+        if type(annotation) is Optional:
+            return cls(annotation.get_error())
 
         raise BadErrorConstruction(
-            f"Invalid type to construct an error from: {type(error)}"
+            f"Invalid type to construct an error from: {type(annotation)}"
         )
 
     def __str__(self) -> str:
@@ -213,7 +213,7 @@ class Optional(Generic[T]):
         return cls(value)
 
     @classmethod
-    def error(cls, error):
+    def error(cls, annotation):
         """Returns an Optional instance indicating failure.
 
         Args:
@@ -223,20 +223,20 @@ class Optional(Generic[T]):
                        (Optional): Use the message from an Optional to annotate this error.
         """
 
-        if type(error) is str:
-            return cls(Error(error))
+        if type(annotation) is str:
+            return cls(Error(annotation))
 
-        if type(error) is Error:
-            return cls(error)
+        if type(annotation) is Error:
+            return cls(annotation)
 
-        if type(error) is Result:
-            return cls(error.get_error())
+        if type(annotation) is Result:
+            return cls(annotation.get_error())
 
-        if type(error) is Optional:
-            return cls(error.get_error())
+        if type(annotation) is Optional:
+            return cls(annotation.get_error())
 
         raise BadErrorConstruction(
-            f"Invalid type to construct an error from: {type(error)}"
+            f"Invalid type to construct an error from: {type(annotation)}"
         )
 
     def __str__(self) -> str:
