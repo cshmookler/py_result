@@ -8,14 +8,14 @@ Typical usage of Error:
                 print(file.read().decode())
             return None
         except OSError as exception:
-            return Error("Failed to read file: " + exception.strerror)
+            return Error("Failed to read file: " + str(exception))
 
     def read_file(path: str) -> Error[str]:
         try:
             with open(path, 'rb') as file:
                 return file.read().decode()
         except OSError as exception:
-            return Error("Failed to read file: " + exception.strerror)
+            return Error("Failed to read file: " + str(exception))
 """
 
 import inspect
