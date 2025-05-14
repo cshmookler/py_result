@@ -1,1 +1,1 @@
-from .result import Error, Result, TraceError
+from .result import Error, is_error, Result, TraceError

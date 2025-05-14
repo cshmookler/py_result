@@ -76,4 +76,11 @@ class Error:
 
 
 T = TypeVar("T")
+
 Result: TypeAlias = Error | T
+
+
+def is_error(result: Result) -> bool:
+    """Return True if the given Result indicates failure and False otherwise."""
+
+    return type(result) is Error
