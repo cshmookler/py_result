@@ -29,14 +29,24 @@ class TraceError(Exception):
 
 
 class Error:
-    """Represents an error message with traces.
+    """Represents an error message with traces."""
 
-    This type is used to distinguish between errors and result values.
-    """
+    def __init__(self, annotation: str | None = None, init_trace: bool = True) -> None:
+        """Initialize a new Error instance.
 
-    def __init__(self, annotation: str) -> None:
+        Args:
+            annotation (str): Annotate the first trace with the given string.
+                       (None): Create the first trace without an annotation.
+            init_trace (bool): Create the first trace during the initialization
+                               of this Error instance.
+        """
+
         self._error: str = ""
-        self._trace(inspect.currentframe(), annotation)
+        if init_trace:
+            self._trace(inspect.currentframe(), annotation)
+        else:
+            if annotation is not None:
+                self._error = annotation
 
     def __str__(self) -> str:
         return self._error
@@ -62,17 +72,40 @@ class Error:
         if annotation is not None:
             self._error += f" -> {annotation}"
 
-    def trace(self, annotation: str | None = None):
+    def trace(self, annotation: str | None = None) -> "Error":
         """Adds a trace to this error with an optional annotation.
 
         Args:
             annotation (str): Add a message annotating this trace.
                        (None): Do not add a message to this trace.
+
+        Returns:
+            Error: A reference to this error.
         """
 
         self._trace(inspect.currentframe(), annotation)
 
         return self
+
+    def concat(self, next_error: "Error") -> "Error":
+        """Generates a new error from this error and another subsequent error.
+        This method is used to combine two separate traces when an
+        error (next_error) is encountered while handling a prior error (self).
+
+        Args:
+            next_error (Error): The error to concatenate with this error.
+
+        Returns:
+            Error: A reference to a new error containing the traces from both
+                   this error and the given error.
+        """
+
+        return Error(
+            self._error
+            + "\nEncountered another error while handling the previous error:"
+            + next_error._error,
+            init_trace=False,
+        )
 
 
 T = TypeVar("T")
