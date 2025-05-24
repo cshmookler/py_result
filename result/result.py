@@ -31,22 +31,17 @@ class TraceError(Exception):
 class Error:
     """Represents an error message with traces."""
 
-    def __init__(self, annotation: str | None = None, init_trace: bool = True) -> None:
+    def __init__(self, annotation: str | BaseException | None = None) -> None:
         """Initialize a new Error instance.
 
         Args:
             annotation (str): Annotate the first trace with the given string.
+                       (BaseException): Replicate the traceback of an exception.
                        (None): Create the first trace without an annotation.
-            init_trace (bool): Create the first trace during the initialization
-                               of this Error instance.
         """
 
         self._error: str = ""
-        if init_trace:
-            self._trace(inspect.currentframe(), annotation)
-        else:
-            if annotation is not None:
-                self._error = annotation
+        self._trace(inspect.currentframe(), annotation)
 
     def __str__(self) -> str:
         return self._error
@@ -54,7 +49,7 @@ class Error:
     def _trace(
         self,
         current_frame: inspect.types.FrameType | None,
-        annotation: str | None = None,
+        annotation: str | BaseException | None,
     ) -> None:
         if current_frame is None:
             raise TraceError("Failed to retrieve the current frame.")
@@ -67,16 +62,25 @@ class Error:
         func: str = prev_frame.f_code.co_name
         line: str = prev_frame.f_lineno
 
-        self._error += f"\n{file}:{func}():{line}"
+        self._error += f"{file}:{func}():{line}"
 
-        if annotation is not None:
-            self._error += f" -> {annotation}"
+        if issubclass(type(annotation), BaseException):
+            self._error += f" -> Exception: {type(annotation)}: {annotation}\n"
+            traceback = annotation.__traceback__
+            while traceback is not None:
+                self._error += f" | {traceback.tb_frame}\n"
+                traceback = traceback.tb_next
+        elif type(annotation) is str:
+            self._error += f" -> {annotation}\n"
+        else:
+            self._error += "\n"
 
-    def trace(self, annotation: str | None = None) -> "Error":
+    def trace(self, annotation: str | BaseException | None = None) -> "Error":
         """Adds a trace to this error with an optional annotation.
 
         Args:
             annotation (str): Add a message annotating this trace.
+                       (BaseException): Replicate the traceback of an exception.
                        (None): Do not add a message to this trace.
 
         Returns:
@@ -100,12 +104,14 @@ class Error:
                    this error and the given error.
         """
 
-        return Error(
+        new_error = Error()
+        new_error._error = (
             self._error
             + "\nEncountered another error while handling the previous error:"
-            + next_error._error,
-            init_trace=False,
+            + next_error._error
         )
+
+        return new_error
 
 
 T = TypeVar("T")
